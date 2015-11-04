@@ -1,0 +1,35 @@
+{
+  "name": "basic-js",
+  "version": "0.0.1",
+  "description": "front end framework build simple to work fast",
+  "main": "basic.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node basic.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lkzwieder/basicJS.git"
+  },
+  "keywords": [
+    "basic",
+    "framework",
+    "di",
+    "dependency injection",
+    "requirejs",
+    "isolated",
+    "modular",
+    "fast",
+    "performance",
+    "basicjs",
+    "basic-js"
+  ],
+  "author": "Lucas Tettamanti",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lkzwieder/basicJS/issues"
+  },
+  "homepage": "https://github.com/lkzwieder/basicJS"
+}

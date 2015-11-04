@@ -3,6 +3,7 @@ var $b;
    var Basic = function(d, w) {
       var _config = {};
       var _store = {};
+      var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
          var queue = {};
@@ -305,7 +306,33 @@ var $b;
             return new Object(obj);
          }
       };
+
+      var _Router = function() { // TODO https://developer.mozilla.org/en-US/docs/Web/API/History_API
+
+      };
+
+      var _vdom2html = function() { // TODO
+
+      };
+
+      var _html2vdom = function() { // TODO
+
+      };
+
+      var _vdomDiff = function(old, current) { // TODO
+
+      };
+
+      var _replace = function(id, vdom) { // TODO
+
+      };
+
+      var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
+
+      };
+
       return {
+         Router: _Router,
          DependencyManager: _DependencyManager,
          Deferred: _Deferred,
          req: _req,

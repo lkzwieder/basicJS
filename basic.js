@@ -3,6 +3,7 @@ var $b;
    var Basic = function(d, w) {
       var _config = {};
       var _store = {};
+      var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
          var queue = {};
@@ -305,7 +306,57 @@ var $b;
             return new Object(obj);
          }
       };
+
+      var _Router = function(routes) { // TODO https://developer.mozilla.org/en-US/docs/Web/API/History_API
+         var hash = w.location.pathname;
+         var foundRoute = false;
+         for(var route in routes) {
+            if(routes[route].params && !_utils.isEmptyObject(routes[route].params)) {
+               var routeRegex = route;
+               for(var param in routes[route].params) {
+                  routeRegex = routeRegex.replace(param, "(" + routes[route].params[param] + ")");
+               }
+               var regex = new RegExp("^" + routeRegex + "$");
+               var matches = hash.match(regex);
+               if(matches) {
+                  var howManyParams = _utils.objectLen(routes[route].params);
+                  var newParams = [];
+                  for(var i = 1; i <= howManyParams; i++) {
+                     newParams.push(matches[i]);
+                  }
+                  if(!_utils.isEmptyArray(matches)) {
+                     routes[route].controller.apply(this, newParams);
+                     foundRoute = true;
+                     break;
+                  }
+               }
+            }
+         }
+         if(!foundRoute) routes.default.controller();
+      };
+
+      var _vdom2html = function() { // TODO
+
+      };
+
+      var _html2vdom = function() { // TODO
+
+      };
+
+      var _vdomDiff = function(old, current) { // TODO
+
+      };
+
+      var _replace = function(id, vdom) { // TODO
+
+      };
+
+      var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
+
+      };
+
       return {
+         Router: _Router,
          DependencyManager: _DependencyManager,
          Deferred: _Deferred,
          req: _req,

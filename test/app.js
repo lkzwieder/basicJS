@@ -13,7 +13,7 @@ var Module = $b.def([
       console.log(id, thing);
    };
 
-   $b.Router({
+   $b.Router.setRoutes({
       '/': {
          controller: _home
       },

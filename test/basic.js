@@ -292,6 +292,18 @@ var $b;
             }
             return res;
          },
+         mergeObjects: function() {
+            var args = Array.prototype.slice.call(arguments);
+            var merged = {};
+            args.forEach(function(obj) {
+               for(var key in obj) {
+                  if(obj.hasOwnProperty(key)) {
+                     merged[key] = obj[key];
+                  }
+               }
+            });
+            return merged;
+         },
          shallowClone: function(obj) { // bettar than deepClone if your concern is performance
             var clone = {};
             for(var i in obj) {

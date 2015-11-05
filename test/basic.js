@@ -327,12 +327,6 @@ var $b;
             history.pushState(objState, name, path);
          };
 
-         var _replace = function(name, path) {
-            var objState = {};
-            objState[name] = path;
-            history.replaceState(objState, name, path);
-         };
-
          var _addRoutes = function(routes) {
             _routes = _utils.mergeObjects(_routes, routes);
          };
@@ -388,7 +382,6 @@ var $b;
          return {
             run: _run,
             change: _change,
-            replace: _replace,
             addRoutes: _addRoutes,
             delRoutes: _delRoutes,
             flushRoutes: _flushRoutes

@@ -309,6 +309,7 @@ var $b;
 
       var _Router = function(routes) { // TODO https://developer.mozilla.org/en-US/docs/Web/API/History_API
          var hash = w.location.pathname;
+         var foundRoute = false;
          for(var route in routes) {
             if(routes[route].params && !_utils.isEmptyObject(routes[route].params)) {
                var routeRegex = route;
@@ -317,17 +318,21 @@ var $b;
                }
                var regex = new RegExp("^" + routeRegex + "$");
                var matches = hash.match(regex);
-               var howManyParams = _utils.objectLen(routes[route].params);
-               var newParams = [];
-               for(var i = 1; i <= howManyParams; i++) {
-                  newParams.push(matches[i]);
-               }
-               if(!_utils.isEmptyArray(matches)) {
-                  routes[route].controller.apply(this, newParams);
-                  break;
+               if(matches) {
+                  var howManyParams = _utils.objectLen(routes[route].params);
+                  var newParams = [];
+                  for(var i = 1; i <= howManyParams; i++) {
+                     newParams.push(matches[i]);
+                  }
+                  if(!_utils.isEmptyArray(matches)) {
+                     routes[route].controller.apply(this, newParams);
+                     foundRoute = true;
+                     break;
+                  }
                }
             }
          }
+         if(!foundRoute) routes.default.controller();
       };
 
       var _vdom2html = function() { // TODO

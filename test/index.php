@@ -5,6 +5,6 @@
     <title>Test Dependency injector</title>
 </head>
 <body>
-    <script type="text/javascript" data-main="main.js" src="basic-min.js"></script>
+    <script type="text/javascript" data-main="/main.js" src="/basic.js"></script>
 </body>
 </html>

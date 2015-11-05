@@ -1,5 +1,5 @@
 var Module = $b.def([
-   '!storeText.html'
+   '!/storeText.html'
 ], function(someText) {
    console.log(someText);
 });

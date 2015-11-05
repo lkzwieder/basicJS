@@ -307,8 +307,27 @@ var $b;
          }
       };
 
-      var _Router = function() { // TODO https://developer.mozilla.org/en-US/docs/Web/API/History_API
-
+      var _Router = function(routes) { // TODO https://developer.mozilla.org/en-US/docs/Web/API/History_API
+         var hash = w.location.pathname;
+         for(var route in routes) {
+            if(routes[route].params && !_utils.isEmptyObject(routes[route].params)) {
+               var routeRegex = route;
+               for(var param in routes[route].params) {
+                  routeRegex = routeRegex.replace(param, "(" + routes[route].params[param] + ")");
+               }
+               var regex = new RegExp("^" + routeRegex + "$");
+               var matches = hash.match(regex);
+               var howManyParams = _utils.objectLen(routes[route].params);
+               var newParams = [];
+               for(var i = 1; i <= howManyParams; i++) {
+                  newParams.push(matches[i]);
+               }
+               if(!_utils.isEmptyArray(matches)) {
+                  routes[route].controller.apply(this, newParams);
+                  break;
+               }
+            }
+         }
       };
 
       var _vdom2html = function() { // TODO

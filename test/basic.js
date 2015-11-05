@@ -3,6 +3,7 @@ var $b;
    var Basic = function(d, w) {
       var _config = {};
       var _store = {};
+      var _routes = {};
       var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
@@ -318,39 +319,81 @@ var $b;
             return new Object(obj);
          }
       };
+      var _Router = (function() {
+         var _hash = w.location.pathname;
+         var _change = function(name, path) {
+            var objState = {};
+            objState[name] = path;
+            history.pushState(objState, name, path);
+         };
 
-      var _Router = {
-         setRoutes: function(routes) {
-            var hash = w.location.pathname;
+         var _replace = function(name, path) {
+            var objState = {};
+            objState[name] = path;
+            history.replaceState(objState, name, path);
+         };
+
+         var _addRoutes = function(routes) {
+            _routes = _utils.mergeObjects(_routes, routes);
+         };
+
+         var _delRoutes = function(route) {
+            delete _routes[route];
+         };
+
+         var _flushRoutes = function() {
+            _routes = {};
+         };
+
+         var _run = function() {
             var foundRoute = false;
-            for(var route in routes) {
-               if(routes[route].params && !_utils.isEmptyObject(routes[route].params)) {
+            for(var route in _routes) {
+               if(_routes[route].params && !_utils.isEmptyObject(_routes[route].params)) {
                   var routeRegex = route;
-                  for(var param in routes[route].params) {
-                     routeRegex = routeRegex.replace(param, "(" + routes[route].params[param] + ")");
+                  for(var param in _routes[route].params) {
+                     routeRegex = routeRegex.replace(param, "(" + _routes[route].params[param] + ")");
                   }
                   var regex = new RegExp("^" + routeRegex + "$");
-                  var matches = hash.match(regex);
+                  var matches = _hash.match(regex);
                   if(matches) {
-                     var howManyParams = _utils.objectLen(routes[route].params);
+                     var howManyParams = _utils.objectLen(_routes[route].params);
                      var newParams = [];
                      for(var i = 1; i <= howManyParams; i++) {
                         newParams.push(matches[i]);
                      }
                      if(!_utils.isEmptyArray(matches)) {
-                        routes[route].controller.apply(this, newParams);
+                        _routes[route].controller.apply(this, newParams);
                         foundRoute = true;
                         break;
                      }
                   }
                }
             }
-            if(!foundRoute) routes.default.controller();
-         },
-         change: function(path) {
-            history.pushState(); // TODO WORKING HERE
-         }
-      };
+            if(!foundRoute) _routes.default.controller();
+         };
+
+         setInterval(function() {
+            var currentUrl = w.location.pathname;
+            if(_hash != currentUrl) {
+               var evt = new Event('urlChange');
+               _hash = w.location.pathname;
+               w.dispatchEvent(evt);
+            }
+         }, 50);
+
+         w.addEventListener('urlChange', function() {
+            _run();
+         });
+
+         return {
+            run: _run,
+            change: _change,
+            replace: _replace,
+            addRoutes: _addRoutes,
+            delRoutes: _delRoutes,
+            flushRoutes: _flushRoutes
+         };
+      })();
 
       var _vdom2html = function() { // TODO
 

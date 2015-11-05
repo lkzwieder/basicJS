@@ -1,8 +1,14 @@
 var Module = $b.def([
    '!/storeText.html'
 ], function(someText) {
-   var _home = function() {};
-   var _login = function() {};
+   var _home = function() {
+      console.log("home");
+   };
+
+   var _default = function() {
+      console.log('default');
+   };
+
    var _user = function(id, thing) {
       console.log(id, thing);
    };
@@ -11,15 +17,15 @@ var Module = $b.def([
       '/': {
          controller: _home
       },
-      '/login': {
-         controller: _login
-      },
       '/user/id/some/thing': {
          controller: _user,
          params: {
             id: '\\d{1,3}',
             thing: '[a-z]{1,6}'
          }
+      },
+      'default': {
+         controller: _default
       }
    });
 });

@@ -3,7 +3,8 @@ var $b;
    var Basic = function(d, w) {
       var _config = {};
       var _store = {};
-      var _routes = {};
+      var _defaultRoutes = {controller: function() {console.log('no default controller')}};
+      var _routes = _defaultRoutes;
       var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
@@ -321,6 +322,7 @@ var $b;
       };
       var _Router = (function() {
          var _hash = w.location.pathname;
+
          var _change = function(name, path) {
             var objState = {};
             objState[name] = path;
@@ -336,7 +338,7 @@ var $b;
          };
 
          var _flushRoutes = function() {
-            _routes = {};
+            _routes = _defaultRoutes;
          };
 
          var _run = function() {
@@ -387,26 +389,22 @@ var $b;
             flushRoutes: _flushRoutes
          };
       })();
-
       var _vdom2html = function() { // TODO
 
       };
-
       var _html2vdom = function() { // TODO
 
       };
-
       var _vdomDiff = function(old, current) { // TODO
 
       };
-
       var _replace = function(id, vdom) { // TODO
 
       };
-
       var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
 
       };
+      var _controller = function() {};
 
       return {
          DependencyManager: _DependencyManager,

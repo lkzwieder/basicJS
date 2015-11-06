@@ -389,12 +389,6 @@ var $b;
             flushRoutes: _flushRoutes
          };
       })();
-      var _vdom2html = function() { // TODO
-
-      };
-      var _html2vdom = function() { // TODO
-
-      };
       var _vdomDiff = function(old, current) { // TODO
 
       };
@@ -405,6 +399,229 @@ var $b;
 
       };
       var _controller = function() {};
+      var _parser = function() {
+         var startTag = /^<([-A-Za-z0-9_]+)((?:\s+[a-zA-Z_:][-a-zA-Z0-9_:.]*(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/,
+            endTag = /^<\/([-A-Za-z0-9_]+)[^>]*>/,
+            attr = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
+         var empty = makeMap("area,base,basefont,br,col,frame,hr,img,input,link,meta,param,embed,command,keygen,source,track,wbr");
+         var block = makeMap("a,address,article,applet,aside,audio,blockquote,button,canvas,center,dd,del,dir,div,dl,dt,fieldset,figcaption,figure,footer,form,frameset,h1,h2,h3,h4,h5,h6,header,hgroup,hr,iframe,ins,isindex,li,map,menu,noframes,noscript,object,ol,output,p,pre,section,script,table,tbody,td,tfoot,th,thead,tr,ul,video");
+         var inline = makeMap("abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var");
+         var closeSelf = makeMap("colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr");
+         var fillAttrs = makeMap("checked,compact,declare,defer,disabled,ismap,multiple,nohref,noresize,noshade,nowrap,readonly,selected");
+         var special = makeMap("script,style");
+         var HTMLParser = function (html, handler) {
+            var index, chars, match, stack = [], last = html;
+            stack.last = function () {
+               return this[this.length - 1];
+            };
+            while(html) {
+               chars = true;
+               if(!stack.last() || !special[stack.last()]) {
+                  if(html.indexOf("<!--") == 0) {
+                     index = html.indexOf("-->");
+                     if(index >= 0) {
+                        if(handler.comment) handler.comment(html.substring(4, index));
+                        html = html.substring(index + 3);
+                        chars = false;
+                     }
+                  } else if(html.indexOf("</") == 0) {
+                     match = html.match(endTag);
+                     if(match) {
+                        html = html.substring(match[0].length);
+                        match[0].replace(endTag, parseEndTag);
+                        chars = false;
+                     }
+                  } else if(html.indexOf("<") == 0) {
+                     match = html.match(startTag);
+                     if(match) {
+                        html = html.substring(match[0].length);
+                        match[0].replace(startTag, parseStartTag);
+                        chars = false;
+                     }
+                  }
+                  if(chars) {
+                     index = html.indexOf("<");
+                     var text = index < 0 ? html : html.substring(0, index);
+                     html = index < 0 ? "" : html.substring(index);
+                     if(handler.chars) handler.chars(text);
+                  }
+               } else {
+                  html = html.replace(new RegExp("([\\s\\S]*?)<\/" + stack.last() + "[^>]*>"), function (all, text) {
+                     text = text.replace(/<!--([\s\S]*?)-->|<!\[CDATA\[([\s\S]*?)]]>/g, "$1$2");
+                     if(handler.chars) handler.chars(text);
+                     return "";
+                  });
+                  parseEndTag("", stack.last());
+               }
+
+               if(html == last) throw "Parse Error: " + html;
+               last = html;
+            }
+
+            parseEndTag();
+
+            function parseStartTag(tag, tagName, rest, unary) {
+               tagName = tagName.toLowerCase();
+               if(block[tagName]) while(stack.last() && inline[stack.last()]) parseEndTag("", stack.last());
+               if(closeSelf[tagName] && stack.last() == tagName) parseEndTag("", tagName);
+               unary = empty[tagName] || !!unary;
+               if(!unary) stack.push(tagName);
+               if(handler.start) {
+                  var attrs = [];
+                  rest.replace(attr, function (match, name) { // No need for uglify here, wacala!
+                     var value = arguments[2] ? arguments[2] :
+                        arguments[3] ? arguments[3] :
+                           arguments[4] ? arguments[4] :
+                              fillAttrs[name] ? name : "";
+                     attrs.push({
+                        name: name,
+                        value: value,
+                        escaped: value.replace(/(^|[^\\])"/g, '$1\\\"')
+                     });
+                  });
+                  if(handler.start) handler.start(tagName, attrs, unary);
+               }
+            }
+
+            function parseEndTag(tag, tagName) {
+               if(!tagName) var pos = 0; else for(var pos = stack.length - 1; pos >= 0; pos--) if(stack[pos] == tagName) break;
+               if(pos >= 0) {
+                  for(var i = stack.length - 1; i >= pos; i--) if(handler.end) handler.end(stack[i]);
+                  stack.length = pos;
+               }
+            }
+         };
+
+         var makeMap = function(str) {
+            var obj = {},
+               items = str.split(","),
+               itemsLen = items.length;
+            for(var i = 0; i < itemsLen; i++) obj[items[i]] = true;
+            return obj;
+         };
+
+         var _html2json = function(html) {
+            var inline = makeMap('a,abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var');
+            inline.textarea = false;
+            inline.input = false;
+            inline.img = false;
+            html = html.replace(/<!DOCTYPE[\s\S]+?>/, '');
+            var bufArray = [];
+            var results = {};
+            var inlineBuf = [];
+            bufArray.last = function() {
+               return this[ this.length - 1];
+            };
+            HTMLParser(html, {
+               start: function(tag, attrs, unary) {
+                  if(inline[tag]) {
+                     var attributes = '';
+                     for(var i = 0; i < attrs.length; i++) { // TODO improve
+                        attributes += ' ' + attrs[i].name + '="' + attrs[i].value + '"';
+                     }
+                     inlineBuf.push('<' + tag + attributes + '>');
+                  } else {
+                     var buf = {};
+                     buf.tag = tag;
+                     if(attrs.length !== 0) {
+                        var attr = {};
+                        for (var i = 0; i < attrs.length; i++) {
+                           var attr_name = attrs[i].name;
+                           var attr_value = attrs[i].value;
+                           if(attr_name === 'class') {
+                              attr_value = attr_value.split(' ');
+                           }
+                           attr[attr_name] = attr_value;
+                        }
+                        buf['attr'] = attr;
+                     }
+                     if(unary) {
+                        var last = bufArray.last();
+                        if(!(last.child instanceof Array)) {
+                           last.child = [];
+                        }
+                        last.child.push(buf);
+                     } else {
+                        bufArray.push(buf);
+                     }
+                  }
+               },
+               end: function(tag) {
+                  if(inline[tag]) {
+                     var last = bufArray.last();
+                     inlineBuf.push('</' + tag + '>');
+                     if(!last.text) last.text = '';
+                     last.text += inlineBuf.join('');
+                     inlineBuf = [];
+                  } else {
+                     var buf = bufArray.pop();
+                     if(bufArray.length === 0) {
+                        return results = buf;
+                     }
+                     var last = bufArray.last();
+                     if(!(last.child instanceof Array)) {
+                        last.child = [];
+                     }
+                     last.child.push(buf);
+                  }
+               },
+               chars: function(text) {
+                  if(inlineBuf.length !== 0) {
+                     inlineBuf.push(text);
+                  } else {
+                     var last = bufArray.last();
+                     if(last) {
+                        if(!last.text) last.text = '';
+                        last.text += text;
+                     }
+                  }
+               },
+               comment: function(text) {
+
+               }
+            });
+            return results;
+         }
+
+         var _json2html = function(json) {
+            var tag = json.tag;
+            var text = json.text;
+            var children = json.child;
+            var buf = [];
+            var empty = makeMap('area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed');
+
+            var buildAttr = function(attr) { // TODO improve
+               for(var k in attr) {
+                  buf.push(' ' + k + '="');
+                  if(attr[k] instanceof Array) {
+                     buf.push(attr[k].join(' '));
+                  } else {
+                     buf.push(attr[k]);
+                  }
+                  buf.push('"');
+               }
+            };
+            buf.push('<');
+            buf.push(tag);
+            json.attr ? buf.push(buildAttr(json.attr)) : null;
+            if(empty[tag]) buf.push('/');
+            buf.push('>');
+            text ? buf.push(text) : null;
+            if(children) { // TODO improve
+               for(var j = 0; j < children.length; j++) {
+                  buf.push(_json2html(children[j]));
+               }
+            }
+            if (!empty[tag]) buf.push('</' + tag + '>');
+            return buf.join('');
+         };
+
+         return {
+            html2json: _html2json,
+            json2html: _json2html
+         };
+      };
+      // TODO extend HTML with for, filters and so on.
 
       return {
          DependencyManager: _DependencyManager,
@@ -412,6 +629,7 @@ var $b;
          req: _req,
          def: _def,
          setConfig: _setConfig,
+         vdom: _parser,
          Router: _Router,
          utils: _utils
       };

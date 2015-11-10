@@ -403,12 +403,12 @@ var $b;
          var startTag = /^<([-A-Za-z0-9_]+)((?:\s+[a-zA-Z_:][-a-zA-Z0-9_:.]*(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/,
             endTag = /^<\/([-A-Za-z0-9_]+)[^>]*>/,
             attr = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
-         var empty = makeMap("area,base,basefont,br,col,frame,hr,img,input,link,meta,param,embed,command,keygen,source,track,wbr");
-         var block = makeMap("a,address,article,applet,aside,audio,blockquote,button,canvas,center,dd,del,dir,div,dl,dt,fieldset,figcaption,figure,footer,form,frameset,h1,h2,h3,h4,h5,h6,header,hgroup,hr,iframe,ins,isindex,li,map,menu,noframes,noscript,object,ol,output,p,pre,section,script,table,tbody,td,tfoot,th,thead,tr,ul,video");
-         var inline = makeMap("abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var");
-         var closeSelf = makeMap("colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr");
-         var fillAttrs = makeMap("checked,compact,declare,defer,disabled,ismap,multiple,nohref,noresize,noshade,nowrap,readonly,selected");
-         var special = makeMap("script,style");
+         var empty = _makeMap("area,base,basefont,br,col,frame,hr,img,input,link,meta,param,embed,command,keygen,source,track,wbr");
+         var block = _makeMap("a,address,article,applet,aside,audio,blockquote,button,canvas,center,dd,del,dir,div,dl,dt,fieldset,figcaption,figure,footer,form,frameset,h1,h2,h3,h4,h5,h6,header,hgroup,hr,iframe,ins,isindex,li,map,menu,noframes,noscript,object,ol,output,p,pre,section,script,table,tbody,td,tfoot,th,thead,tr,ul,video");
+         var inline = _makeMap("abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var");
+         var closeSelf = _makeMap("colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr");
+         var fillAttrs = _makeMap("checked,compact,declare,defer,disabled,ismap,multiple,nohref,noresize,noshade,nowrap,readonly,selected");
+         var special = _makeMap("script,style");
          var HTMLParser = function (html, handler) {
             var index, chars, match, stack = [], last = html;
             stack.last = function () {
@@ -491,17 +491,15 @@ var $b;
                }
             }
          };
-
-         var makeMap = function(str) {
+         var _makeMap = function(str) {
             var obj = {},
                items = str.split(","),
                itemsLen = items.length;
             for(var i = 0; i < itemsLen; i++) obj[items[i]] = true;
             return obj;
          };
-
          var _html2json = function(html) {
-            var inline = makeMap('a,abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var');
+            var inline = _makeMap('a,abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var');
             inline.textarea = false;
             inline.input = false;
             inline.img = false;
@@ -581,14 +579,13 @@ var $b;
                }
             });
             return results;
-         }
-
+         };
          var _json2html = function(json) {
             var tag = json.tag;
             var text = json.text;
             var children = json.child;
             var buf = [];
-            var empty = makeMap('area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed');
+            var empty = _makeMap('area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed');
 
             var buildAttr = function(attr) { // TODO improve
                for(var k in attr) {

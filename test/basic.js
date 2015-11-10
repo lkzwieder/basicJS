@@ -509,22 +509,23 @@ var $b;
             var results = {};
             var inlineBuf = [];
             bufArray.last = function() {
-               return this[ this.length - 1];
+               return this[this.length - 1];
             };
             HTMLParser(html, {
                start: function(tag, attrs, unary) {
+                  var attrLen = attrs.length;
                   if(inline[tag]) {
                      var attributes = '';
-                     for(var i = 0; i < attrs.length; i++) { // TODO improve
+                     for(var i = 0; i < attrLen; i++) {
                         attributes += ' ' + attrs[i].name + '="' + attrs[i].value + '"';
                      }
                      inlineBuf.push('<' + tag + attributes + '>');
                   } else {
                      var buf = {};
                      buf.tag = tag;
-                     if(attrs.length !== 0) {
+                     if(attrLen !== 0) {
                         var attr = {};
-                        for (var i = 0; i < attrs.length; i++) {
+                        for(var i = 0; i < attrLen; i++) {
                            var attr_name = attrs[i].name;
                            var attr_value = attrs[i].value;
                            if(attr_name === 'class') {
@@ -587,7 +588,6 @@ var $b;
             var children = json.child;
             var buf = [];
             var empty = _makeMap('area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed');
-
             var buildAttr = function(attr) { // TODO improve
                for(var k in attr) {
                   buf.push(' ' + k + '="');

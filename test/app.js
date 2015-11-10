@@ -2,8 +2,10 @@ var Module = $b.def([
    '!/storeText.html'
 ], function(someText) {
    var _default = function() {
-      console.log('default');
-      $b.Router.replace('user', '/user/123/some/thing');
+      console.log(someText);
+      var vdom = $b.vdom.html2json(someText);
+      console.log(vdom);
+      //$b.Router.replace('user', '/user/123/some/thing');
    };
 
    var _user = function(id, thing) {

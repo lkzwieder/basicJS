@@ -400,6 +400,13 @@ var $b;
       };
       var _controller = function() {};
       var _parser = function() {
+         var _makeMap = function(str) {
+            var obj = {},
+               items = str.split(","),
+               itemsLen = items.length;
+            for(var i = 0; i < itemsLen; i++) obj[items[i]] = true;
+            return obj;
+         };
          var startTag = /^<([-A-Za-z0-9_]+)((?:\s+[a-zA-Z_:][-a-zA-Z0-9_:.]*(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/,
             endTag = /^<\/([-A-Za-z0-9_]+)[^>]*>/,
             attr = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
@@ -491,13 +498,7 @@ var $b;
                }
             }
          };
-         var _makeMap = function(str) {
-            var obj = {},
-               items = str.split(","),
-               itemsLen = items.length;
-            for(var i = 0; i < itemsLen; i++) obj[items[i]] = true;
-            return obj;
-         };
+
          var _html2json = function(html) {
             var inline = _makeMap('a,abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var');
             inline.textarea = false;
@@ -617,7 +618,7 @@ var $b;
             html2json: _html2json,
             json2html: _json2html
          };
-      };
+      }();
       // TODO extend HTML with for, filters and so on.
 
       return {

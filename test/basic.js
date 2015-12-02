@@ -159,7 +159,7 @@ var $b;
             }
          };
       };
-      var _req = function(deps, cb) {
+      var _req = function(deps, cb, params) {
          var _createScript = function() {
             var script = d.createElement('script');
             script.type = 'text/javascript';
@@ -242,18 +242,19 @@ var $b;
                   deps.forEach(function(name) {
                      toSend.push(_store[name]);
                   });
+                  toSend.push(params);
                   if(cb) cb.apply(null, toSend);
                })
                .fail(function(e) {
                   console.log(e);
                });
          } else {
-            cb();
+            cb(params);
          }
       };
       var _def = function(deps, cb) {
          return function() {
-            _req(deps, cb);
+            _req(deps, cb, arguments);
          };
       };
       var _setConfig = function(config) {
@@ -398,7 +399,14 @@ var $b;
       var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
 
       };
-      var _controller = function() {};
+      var _Controller = function(opt) {
+         //opt.el
+         //opt.initialize
+         //opt.render
+         //opt.events
+         opt.render = opt.render || function() {};
+         opt.initialize().render();
+      };
       var _parser = function() {
          var _makeMap = function(str) {
             var obj = {},
@@ -625,6 +633,7 @@ var $b;
       return {
          DependencyManager: _DependencyManager,
          Deferred: _Deferred,
+         Controller: _Controller,
          req: _req,
          def: _def,
          setConfig: _setConfig,

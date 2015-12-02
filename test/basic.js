@@ -323,7 +323,7 @@ var $b;
       var _Router = (function() {
          var _hash = w.location.pathname;
 
-         var _change = function(name, path) {
+         var _navigate = function(name, path) {
             var objState = {};
             objState[name] = path;
             history.pushState(objState, name, path);
@@ -383,7 +383,7 @@ var $b;
 
          return {
             run: _run,
-            change: _change,
+            navigate: _navigate,
             addRoutes: _addRoutes,
             delRoutes: _delRoutes,
             flushRoutes: _flushRoutes

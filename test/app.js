@@ -4,10 +4,11 @@ var Module = $b.def([
    var _default = function() {
       //console.log(someText);
       var vdom = $b.vdom.html2json(someText);
-      console.log(vdom);
+      //console.log(vdom);
       var html = $b.vdom.json2html(vdom);
-      console.log(html);
-      //$b.Router.replace('user', '/user/123/some/thing');
+      //console.log(html);
+      document.getElementsByTagName('body')[0].innerHTML = html;
+      //$b.Router.navigate('user', '/user/123/some/pedo');
    };
 
    var _user = function(id, thing) {

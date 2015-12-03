@@ -663,14 +663,25 @@ var $b;
 
          var _attrExtensions = [{
             bc_repeat: function(json) {
-
+               return json;
             }
          }];
-         var _process = function(html) {
-            var json = _html2json(html);
-            for(var attr in json.attr) {
-               if(_utils.inObject(attr.replace('-', '_'), _attrExtensions)) {
-                  json = _attrExtensions[attr](json);
+         var _applyAttrs = function(json) {
+            if(json.attr) {
+               for(var attr in json.attr) {
+                  if(_utils.inObject(attr.replace('-', '_'), _attrExtensions)) {
+                     json = _attrExtensions[attr](json);
+                  }
+               }
+            }
+            return json;
+         };
+         var _process = function(json) {
+            json = _applyAttrs(json);
+            if(json.child) {
+               var len = json.child.length;
+               for(var i = 0; i < len; i++) {
+                  json.child[i] = _process(json.child[i]);
                }
             }
             console.log(json);
@@ -683,7 +694,8 @@ var $b;
          return {
             html2json: _html2json,
             json2html: _json2html,
-            process: _process
+            process: _process,
+            attrExtensions: _attrExtensions
          };
       }();
 

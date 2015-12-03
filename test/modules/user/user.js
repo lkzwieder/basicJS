@@ -4,7 +4,7 @@ var UserCtrl = $b.def([
    $b.Controller({
       el: $b.select('body')[0],
       initialize: function() {
-         this.vdom = $b.vdom.process(userTmp,
+         this.vdom = $b.vdom.process($b.vdom.html2json(userTmp),
             {value: [
                {name: 'Lucas', lastname: 'Tettamanti'},
                {name: 'Amira', lastname: 'Natour'}

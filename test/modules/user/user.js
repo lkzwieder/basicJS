@@ -1,10 +1,10 @@
-var userController = $b.def([
+var userCtrl = $b.def([
     '!/modules/user/userTemplate.html'
 ], function(userTmp, params) {
     $b.Controller({
         el: document.getElementsByTagName('body')[0],
         initialize: function() {
-            console.log(params);
+            console.log("IN");
             this.vdom = $b.vdom.html2json(userTmp);
             this.html = $b.vdom.json2html(this.vdom);
             return this;

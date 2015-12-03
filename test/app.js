@@ -1,4 +1,4 @@
-var Module = $b.def([
+var def = $b.def([
    '/modules/default/default.js',
    '/modules/user/user.js'
 ], function(_default, _user) {

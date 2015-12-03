@@ -1,4 +1,4 @@
-var defaultController = $b.def([
+var defaultCtrl = $b.def([
     '!/modules/default/defaultTemplate.html'
 ], function(defaultTmp) {
     $b.Controller({

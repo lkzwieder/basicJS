@@ -191,7 +191,7 @@ var $b;
             var deferred = new _Deferred();
             var script = _createScript();
             script.src = url;
-            var prevWindow = _utils.shallowClone(w);
+            var prevWindow = _utils.shallowClone(w); // TODO cuando se ejecuta load, windowDiff encuentra todas las diferencias pero el nombre que llega como parametro es uno solo
             script.addEventListener('load', function(e) {
                var node = e.currentTarget;
                var names = _windowDiffStore(prevWindow, w, name);
@@ -307,18 +307,16 @@ var $b;
             });
             return merged;
          },
-         shallowClone: function(obj) { // bettar than deepClone if your concern is performance
+         shallowClone: function(obj) {
             var clone = {};
             for(var i in obj) {
-               clone[i] = obj[i];
+               if(i.indexOf('on') !== 0 &&
+                  ["defaultstatus", "defaultStatus", "pageYOffset", "scrollY", "pageXOffset", "scrollX", "frameElement",
+                  "opener", "length", "closed", "status", "name", "TEMPORARY"].indexOf(i) == -1) {
+                  clone[i] = obj[i];
+               }
             }
             return clone;
-         },
-         deepClone: function(obj) {
-            return JSON.parse(JSON.stringify(obj));
-         },
-         anotherClone: function(obj) {
-            return new Object(obj);
          }
       };
       var _Router = (function() {
@@ -359,14 +357,16 @@ var $b;
                         newParams.push(matches[i]);
                      }
                      if(!_utils.isEmptyArray(matches)) {
-                        _routes[route].controller.apply(this, newParams);
+                        _routes[route].controller.apply(null, newParams);
                         foundRoute = true;
                         break;
                      }
                   }
                }
             }
-            if(!foundRoute) _routes.default.controller();
+            if(!foundRoute) {
+               _routes.default.controller();
+            }
          };
 
          setInterval(function() {
@@ -399,10 +399,14 @@ var $b;
       var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
 
       };
+      var _select = function(query, el) {
+         el = el || d;
+         return el.querySelectorAll(query);
+      };
       var _Controller = function(opt) {
-         //opt.el
-         //opt.initialize
-         //opt.render
+         if(_utils.isString(opt.el)) {
+            opt.el = _select(opt.el);
+         }
          //opt.events
          opt.render = opt.render || function() {};
          opt.initialize().render();
@@ -639,7 +643,10 @@ var $b;
          setConfig: _setConfig,
          vdom: _parser,
          Router: _Router,
-         utils: _utils
+         utils: _utils,
+         select: _select,
+         controllers: {},
+         store: _store
       };
    };
 

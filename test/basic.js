@@ -428,9 +428,19 @@ var $b;
          return el.querySelectorAll(query);
       };
       var _Controller = function(opt) {
-         //opt.events
          opt.render = opt.render || function() {};
+         opt.events = opt.events || {};
          opt.initialize().render();
+         if(!_utils.isEmptyObject(opt.events)) {
+            for(var event in opt.events) {
+               var evt = event.split(" ", 2);
+               var el = _select(evt[1]);
+               var len = el.length;
+               for(var i = len; i--;) {
+                  el[i].addEventListener(evt[0], opt.events[event]);
+               }
+            }
+         }
       };
       var _parser = function() {
          var _makeMap = function(str) {

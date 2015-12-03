@@ -12,7 +12,7 @@ var UserCtrl = $b.def([
          this.el.innerHTML = this.html;
       },
       events: {
-         'click #function': function() {
+         'mouseover #function': function() {
             console.log('click on #function');
          }
       }

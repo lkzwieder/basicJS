@@ -1,7 +1,8 @@
 var AppLoader = $b.def([
+   'underscore',
    '/modules/default/default.js',
    '/modules/user/user.js'
-], function(_default, _user) {
+], function(_, _default, _user) {
    $b.Router.addRoutes({
       '/user/id/some/thing': {
          controller: _user,

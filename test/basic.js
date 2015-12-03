@@ -160,6 +160,7 @@ var $b;
          };
       };
       var _req = function(deps, cb, params) {
+         var alreadyLoaded = [];
          var _createScript = function() {
             var script = d.createElement('script');
             script.type = 'text/javascript';
@@ -194,7 +195,7 @@ var $b;
             var prevWindow = _utils.shallowClone(w); // TODO cuando se ejecuta load, windowDiff encuentra todas las diferencias pero el nombre que llega como parametro es uno solo
             script.addEventListener('load', function(e) {
                var node = e.currentTarget;
-               var names = _windowDiffStore(prevWindow, w, name);
+               var names = _windowDiffStore(prevWindow, w, name, node, url);
                if(!_utils.isEmptyArray(names)) {
                   names.forEach(function(n) {
                      delete w[n];
@@ -216,13 +217,16 @@ var $b;
             return name.indexOf('!') === 0 ? _storeText(name, url) : _storeScript(name, url);
          };
 
-         var _windowDiffStore = function(old, current, name) {
+         var _windowDiffStore = function(old, current, name, node, url) {
             var res = [];
             current = _utils.shallowClone(current);
             for(var i in current) {
-               if(!old[i] && !_store[name]) {
-                  _store[name] = current[i];
-                  res.push(i);
+               if(!old[i]) {
+                  if(node.src.indexOf(url) != -1 && alreadyLoaded.indexOf(i) == -1) {
+                     _store[name] = current[i];
+                     alreadyLoaded.push(i);
+                     res.push(i);
+                  }
                }
             }
             return res;

@@ -1,4 +1,4 @@
-var def = $b.def([
+var AppLoader = $b.def([
    '/modules/default/default.js',
    '/modules/user/user.js'
 ], function(_default, _user) {

@@ -1,15 +1,7 @@
-var Module = $b.def([
-   '!/storeText.html'
-], function(someText) {
-   var _default = function() {
-      console.log('default');
-      $b.Router.replace('user', '/user/123/some/thing');
-   };
-
-   var _user = function(id, thing) {
-      console.log(id, thing);
-   };
-
+var AppLoader = $b.def([
+   '/modules/default/default.js',
+   '/modules/user/user.js'
+], function(_default, _user) {
    $b.Router.addRoutes({
       '/user/id/some/thing': {
          controller: _user,

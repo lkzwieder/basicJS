@@ -3,7 +3,8 @@ var $b;
    var Basic = function(d, w) {
       var _config = {};
       var _store = {};
-      var _routes = {};
+      var _defaultRoutes = {controller: function() {console.log('no default controller')}};
+      var _routes = _defaultRoutes;
       var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
@@ -57,15 +58,20 @@ var $b;
             _wasDependency(name);
          };
 
-         var originalPos = 0;
-         arr.forEach(function(name) {
+         var _toAddCode = function(name) {
             var url = name;
             var deps = [];
             if(config[name]) {
                url = config[name].url || url;
                deps = config[name].deps || deps;
             }
-            _addCode(url, name, deps, originalPos);
+            return {url: url, deps: deps};
+         };
+
+         var originalPos = 0;
+         arr.forEach(function(name) {
+            var toAdd = _toAddCode(name);
+            _addCode(toAdd.url, name, toAdd.deps, originalPos);
             originalPos += 1;
          });
 
@@ -73,6 +79,14 @@ var $b;
             executed.forEach(function(name) {
                _wasDependency(name);
             });
+            if(!_utils.isEmptyObject(queue)) {
+               for(var script in queue) {
+                  config[script].deps.forEach(function(name) {
+                     var toAdd = _toAddCode(name);
+                     _addCode(toAdd.url, name, toAdd.deps);
+                  });
+               }
+            }
          }
 
          return data;
@@ -158,7 +172,8 @@ var $b;
             }
          };
       };
-      var _req = function(deps, cb) {
+      var _req = function(deps, cb, params) {
+         var alreadyLoaded = [];
          var _createScript = function() {
             var script = d.createElement('script');
             script.type = 'text/javascript';
@@ -190,10 +205,10 @@ var $b;
             var deferred = new _Deferred();
             var script = _createScript();
             script.src = url;
-            var prevWindow = _utils.shallowClone(w);
+            var prevWindow = _utils.shallowClone(w); // TODO cuando se ejecuta load, windowDiff encuentra todas las diferencias pero el nombre que llega como parametro es uno solo
             script.addEventListener('load', function(e) {
                var node = e.currentTarget;
-               var names = _windowDiffStore(prevWindow, w, name);
+               var names = _windowDiffStore(prevWindow, w, name, node, url);
                if(!_utils.isEmptyArray(names)) {
                   names.forEach(function(n) {
                      delete w[n];
@@ -215,13 +230,16 @@ var $b;
             return name.indexOf('!') === 0 ? _storeText(name, url) : _storeScript(name, url);
          };
 
-         var _windowDiffStore = function(old, current, name) {
+         var _windowDiffStore = function(old, current, name, node, url) {
             var res = [];
             current = _utils.shallowClone(current);
             for(var i in current) {
-               if(!old[i] && !_store[name]) {
-                  _store[name] = current[i];
-                  res.push(i);
+               if(!old[i]) {
+                  if(node.src.indexOf(url) != -1 && alreadyLoaded.indexOf(i) == -1) {
+                     _store[name] = current[i];
+                     alreadyLoaded.push(i);
+                     res.push(i);
+                  }
                }
             }
             return res;
@@ -241,18 +259,19 @@ var $b;
                   deps.forEach(function(name) {
                      toSend.push(_store[name]);
                   });
+                  toSend.push(params);
                   if(cb) cb.apply(null, toSend);
                })
                .fail(function(e) {
                   console.log(e);
                });
          } else {
-            cb();
+            cb(params);
          }
       };
       var _def = function(deps, cb) {
          return function() {
-            _req(deps, cb);
+            _req(deps, cb, arguments);
          };
       };
       var _setConfig = function(config) {
@@ -305,32 +324,32 @@ var $b;
             });
             return merged;
          },
-         shallowClone: function(obj) { // bettar than deepClone if your concern is performance
+         uniqueArray: function(arr) {
+            var res = [];
+            arr.forEach(function(i) {
+               if(res.indexOf(i) == -1) res.push(i);
+            });
+            return res;
+         },
+         shallowClone: function(obj) {
             var clone = {};
             for(var i in obj) {
-               clone[i] = obj[i];
+               if(i.indexOf('on') !== 0 &&
+                  ["defaultstatus", "defaultStatus", "pageYOffset", "scrollY", "pageXOffset", "scrollX", "frameElement",
+                  "opener", "length", "closed", "status", "name", "TEMPORARY"].indexOf(i) == -1) {
+                  clone[i] = obj[i];
+               }
             }
             return clone;
-         },
-         deepClone: function(obj) {
-            return JSON.parse(JSON.stringify(obj));
-         },
-         anotherClone: function(obj) {
-            return new Object(obj);
          }
       };
       var _Router = (function() {
          var _hash = w.location.pathname;
-         var _change = function(name, path) {
+
+         var _navigate = function(name, path) {
             var objState = {};
             objState[name] = path;
             history.pushState(objState, name, path);
-         };
-
-         var _replace = function(name, path) {
-            var objState = {};
-            objState[name] = path;
-            history.replaceState(objState, name, path);
          };
 
          var _addRoutes = function(routes) {
@@ -342,7 +361,7 @@ var $b;
          };
 
          var _flushRoutes = function() {
-            _routes = {};
+            _routes = _defaultRoutes;
          };
 
          var _run = function() {
@@ -362,14 +381,16 @@ var $b;
                         newParams.push(matches[i]);
                      }
                      if(!_utils.isEmptyArray(matches)) {
-                        _routes[route].controller.apply(this, newParams);
+                        _routes[route].controller.apply(null, newParams);
                         foundRoute = true;
                         break;
                      }
                   }
                }
             }
-            if(!foundRoute) _routes.default.controller();
+            if(!foundRoute) {
+               _routes.default.controller();
+            }
          };
 
          setInterval(function() {
@@ -387,42 +408,276 @@ var $b;
 
          return {
             run: _run,
-            change: _change,
-            replace: _replace,
+            navigate: _navigate,
             addRoutes: _addRoutes,
             delRoutes: _delRoutes,
             flushRoutes: _flushRoutes
          };
       })();
-
-      var _vdom2html = function() { // TODO
-
-      };
-
-      var _html2vdom = function() { // TODO
-
-      };
-
       var _vdomDiff = function(old, current) { // TODO
 
       };
-
       var _replace = function(id, vdom) { // TODO
 
       };
-
       var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
 
       };
+      var _select = function(query, el) {
+         el = el || d;
+         return el.querySelectorAll(query);
+      };
+      var _Controller = function(opt) {
+         opt.render = opt.render || function() {};
+         opt.events = opt.events || {};
+         opt.initialize().render();
+         if(!_utils.isEmptyObject(opt.events)) {
+            for(var event in opt.events) {
+               var evt = event.split(" ", 2);
+               var el = _select(evt[1]);
+               var len = el.length;
+               for(var i = len; i--;) {
+                  el[i].addEventListener(evt[0], opt.events[event]);
+               }
+            }
+         }
+      };
+      var _parser = function() {
+         var _makeMap = function(str) {
+            var obj = {},
+               items = str.split(","),
+               itemsLen = items.length;
+            for(var i = 0; i < itemsLen; i++) obj[items[i]] = true;
+            return obj;
+         };
+         var startTag = /^<([-A-Za-z0-9_]+)((?:\s+[a-zA-Z_:][-a-zA-Z0-9_:.]*(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/,
+            endTag = /^<\/([-A-Za-z0-9_]+)[^>]*>/,
+            attr = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
+         var empty = _makeMap("area,base,basefont,br,col,frame,hr,img,input,link,meta,param,embed,command,keygen,source,track,wbr");
+         var block = _makeMap("a,address,article,applet,aside,audio,blockquote,button,canvas,center,dd,del,dir,div,dl,dt,fieldset,figcaption,figure,footer,form,frameset,h1,h2,h3,h4,h5,h6,header,hgroup,hr,iframe,ins,isindex,li,map,menu,noframes,noscript,object,ol,output,p,pre,section,script,table,tbody,td,tfoot,th,thead,tr,ul,video");
+         var inline = _makeMap("abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var");
+         var closeSelf = _makeMap("colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr");
+         var fillAttrs = _makeMap("checked,compact,declare,defer,disabled,ismap,multiple,nohref,noresize,noshade,nowrap,readonly,selected");
+         var special = _makeMap("script,style");
+         var HTMLParser = function (html, handler) {
+            var index, chars, match, stack = [], last = html;
+            stack.last = function () {
+               return this[this.length - 1];
+            };
+            while(html) {
+               chars = true;
+               if(!stack.last() || !special[stack.last()]) {
+                  if(html.indexOf("<!--") == 0) {
+                     index = html.indexOf("-->");
+                     if(index >= 0) {
+                        if(handler.comment) handler.comment(html.substring(4, index));
+                        html = html.substring(index + 3);
+                        chars = false;
+                     }
+                  } else if(html.indexOf("</") == 0) {
+                     match = html.match(endTag);
+                     if(match) {
+                        html = html.substring(match[0].length);
+                        match[0].replace(endTag, parseEndTag);
+                        chars = false;
+                     }
+                  } else if(html.indexOf("<") == 0) {
+                     match = html.match(startTag);
+                     if(match) {
+                        html = html.substring(match[0].length);
+                        match[0].replace(startTag, parseStartTag);
+                        chars = false;
+                     }
+                  }
+                  if(chars) {
+                     index = html.indexOf("<");
+                     var text = index < 0 ? html : html.substring(0, index);
+                     html = index < 0 ? "" : html.substring(index);
+                     if(handler.chars) handler.chars(text);
+                  }
+               } else {
+                  html = html.replace(new RegExp("([\\s\\S]*?)<\/" + stack.last() + "[^>]*>"), function (all, text) {
+                     text = text.replace(/<!--([\s\S]*?)-->|<!\[CDATA\[([\s\S]*?)]]>/g, "$1$2");
+                     if(handler.chars) handler.chars(text);
+                     return "";
+                  });
+                  parseEndTag("", stack.last());
+               }
+
+               if(html == last) throw "Parse Error: " + html;
+               last = html;
+            }
+
+            parseEndTag();
+
+            function parseStartTag(tag, tagName, rest, unary) {
+               tagName = tagName.toLowerCase();
+               if(block[tagName]) while(stack.last() && inline[stack.last()]) parseEndTag("", stack.last());
+               if(closeSelf[tagName] && stack.last() == tagName) parseEndTag("", tagName);
+               unary = empty[tagName] || !!unary;
+               if(!unary) stack.push(tagName);
+               if(handler.start) {
+                  var attrs = [];
+                  rest.replace(attr, function (match, name) { // No need for uglify here, wacala!
+                     var value = arguments[2] ? arguments[2] :
+                        arguments[3] ? arguments[3] :
+                           arguments[4] ? arguments[4] :
+                              fillAttrs[name] ? name : "";
+                     attrs.push({
+                        name: name,
+                        value: value,
+                        escaped: value.replace(/(^|[^\\])"/g, '$1\\\"')
+                     });
+                  });
+                  if(handler.start) handler.start(tagName, attrs, unary);
+               }
+            }
+
+            function parseEndTag(tag, tagName) {
+               if(!tagName) var pos = 0; else for(var pos = stack.length - 1; pos >= 0; pos--) if(stack[pos] == tagName) break;
+               if(pos >= 0) {
+                  for(var i = stack.length - 1; i >= pos; i--) if(handler.end) handler.end(stack[i]);
+                  stack.length = pos;
+               }
+            }
+         };
+
+         var _html2json = function(html) {
+            var inline = _makeMap('a, abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var');
+            inline.textarea = false;
+            inline.input = false;
+            inline.img = false;
+            inline.a = false;
+            html = html.replace(/<!DOCTYPE[\s\S]+?>/, '');
+            var bufArray = [];
+            var results = {};
+            var inlineBuf = [];
+            bufArray.last = function() {
+               return this[this.length - 1];
+            };
+            HTMLParser(html, {
+               start: function(tag, attrs, unary) {
+                  var attrLen = attrs.length;
+                  if(inline[tag]) {
+                     var attributes = '';
+                     for(var i = 0; i < attrLen; i++) {
+                        attributes += ' ' + attrs[i].name + '="' + attrs[i].value + '"';
+                     }
+                     inlineBuf.push('<' + tag + attributes + '>');
+                  } else {
+                     var buf = {};
+                     buf.tag = tag;
+                     if(attrLen !== 0) {
+                        var attr = {};
+                        for(var i = 0; i < attrLen; i++) {
+                           var attr_name = attrs[i].name;
+                           var attr_value = attrs[i].value;
+                           if(attr_name === 'class') {
+                              attr_value = attr_value.split(' ');
+                           }
+                           attr[attr_name] = attr_value;
+                        }
+                        buf['attr'] = attr;
+                     }
+                     if(unary) {
+                        var last = bufArray.last();
+                        if(!(last.child instanceof Array)) {
+                           last.child = [];
+                        }
+                        last.child.push(buf);
+                     } else {
+                        bufArray.push(buf);
+                     }
+                  }
+               },
+               end: function(tag) {
+                  if(inline[tag]) {
+                     var last = bufArray.last();
+                     inlineBuf.push('</' + tag + '>');
+                     if(!last.text) last.text = '';
+                     last.text += inlineBuf.join('');
+                     inlineBuf = [];
+                  } else {
+                     var buf = bufArray.pop();
+                     if(bufArray.length === 0) {
+                        return results = buf;
+                     }
+                     var last = bufArray.last();
+                     if(!(last.child instanceof Array)) {
+                        last.child = [];
+                     }
+                     last.child.push(buf);
+                  }
+               },
+               chars: function(text) {
+                  if(inlineBuf.length !== 0) {
+                     inlineBuf.push(text);
+                  } else {
+                     var last = bufArray.last();
+                     if(last) {
+                        if(!last.text) last.text = '';
+                        last.text += text;
+                     }
+                  }
+               },
+               comment: function(text) {
+
+               }
+            });
+            return results;
+         };
+         var _json2html = function(json) {
+            var tag = json.tag;
+            var text = json.text;
+            var children = json.child;
+            var buf = [];
+            var empty = _makeMap('area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed');
+            var buildAttr = function(attr) { // TODO improve
+               for(var k in attr) {
+                  buf.push(' ' + k + '="');
+                  if(attr[k] instanceof Array) {
+                     buf.push(attr[k].join(' '));
+                  } else {
+                     buf.push(attr[k]);
+                  }
+                  buf.push('"');
+               }
+            };
+            buf.push('<');
+            buf.push(tag);
+            json.attr ? buf.push(buildAttr(json.attr)) : null;
+            if(empty[tag]) buf.push('/');
+            buf.push('>');
+            text ? buf.push(text) : null;
+            if(children) { // TODO improve
+               for(var j = 0; j < children.length; j++) {
+                  buf.push(_json2html(children[j]));
+               }
+            }
+            if (!empty[tag]) buf.push('</' + tag + '>');
+            return buf.join('');
+         };
+
+         return {
+            html2json: _html2json,
+            json2html: _json2html
+         };
+      }();
+      // TODO extend HTML with for, filters and so on.
 
       return {
          DependencyManager: _DependencyManager,
          Deferred: _Deferred,
+         Controller: _Controller,
          req: _req,
          def: _def,
          setConfig: _setConfig,
+         vdom: _parser,
          Router: _Router,
-         utils: _utils
+         utils: _utils,
+         select: _select,
+         controllers: {},
+         store: _store
       };
    };
 

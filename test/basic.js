@@ -248,7 +248,6 @@ var $b;
          var dynamics = [];
          if(!_utils.isEmptyArray(deps)) {
             var orderedDeps = new _DependencyManager(deps, _config);
-            //console.log(orderedDeps);
             orderedDeps.forEach(function(dep) {
                if(!_utils.inObject(dep.name, _store)) {
                   dynamics.push(_storeDeps(dep.name, dep.url));

@@ -428,9 +428,6 @@ var $b;
          return el.querySelectorAll(query);
       };
       var _Controller = function(opt) {
-         if(_utils.isString(opt.el)) {
-            opt.el = _select(opt.el);
-         }
          //opt.events
          opt.render = opt.render || function() {};
          opt.initialize().render();

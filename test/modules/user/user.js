@@ -4,7 +4,6 @@ var UserCtrl = $b.def([
     $b.Controller({
         el: document.getElementsByTagName('body')[0],
         initialize: function() {
-            console.log("IN");
             this.vdom = $b.vdom.html2json(userTmp);
             this.html = $b.vdom.json2html(this.vdom);
             return this;

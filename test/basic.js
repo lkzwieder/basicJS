@@ -58,15 +58,20 @@ var $b;
             _wasDependency(name);
          };
 
-         var originalPos = 0;
-         arr.forEach(function(name) {
+         var _toAddCode = function(name) {
             var url = name;
             var deps = [];
             if(config[name]) {
                url = config[name].url || url;
                deps = config[name].deps || deps;
             }
-            _addCode(url, name, deps, originalPos);
+            return {url: url, deps: deps};
+         };
+
+         var originalPos = 0;
+         arr.forEach(function(name) {
+            var toAdd = _toAddCode(name);
+            _addCode(toAdd.url, name, toAdd.deps, originalPos);
             originalPos += 1;
          });
 
@@ -74,6 +79,14 @@ var $b;
             executed.forEach(function(name) {
                _wasDependency(name);
             });
+            if(!_utils.isEmptyObject(queue)) {
+               for(var script in queue) {
+                  config[script].deps.forEach(function(name) {
+                     var toAdd = _toAddCode(name);
+                     _addCode(toAdd.url, name, toAdd.deps);
+                  });
+               }
+            }
          }
 
          return data;
@@ -235,6 +248,7 @@ var $b;
          var dynamics = [];
          if(!_utils.isEmptyArray(deps)) {
             var orderedDeps = new _DependencyManager(deps, _config);
+            //console.log(orderedDeps);
             orderedDeps.forEach(function(dep) {
                if(!_utils.inObject(dep.name, _store)) {
                   dynamics.push(_storeDeps(dep.name, dep.url));
@@ -310,6 +324,13 @@ var $b;
                }
             });
             return merged;
+         },
+         uniqueArray: function(arr) {
+            var res = [];
+            arr.forEach(function(i) {
+               if(res.indexOf(i) == -1) res.push(i);
+            });
+            return res;
          },
          shallowClone: function(obj) {
             var clone = {};

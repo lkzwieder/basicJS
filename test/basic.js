@@ -657,13 +657,35 @@ var $b;
             if (!empty[tag]) buf.push('</' + tag + '>');
             return buf.join('');
          };
+         /**
+          * attrExtensions hook start
+          */
+
+         var _attrExtensions = [{
+            bc_repeat: function(json) {
+
+            }
+         }];
+         var _process = function(html) {
+            var json = _html2json(html);
+            for(var attr in json.attr) {
+               if(_utils.inObject(attr.replace('-', '_'), _attrExtensions)) {
+                  json = _attrExtensions[attr](json);
+               }
+            }
+            console.log(json);
+            return json;
+         };
+         /**
+          * attrExtensions hook end
+          */
 
          return {
             html2json: _html2json,
-            json2html: _json2html
+            json2html: _json2html,
+            process: _process
          };
       }();
-      // TODO extend HTML with for, filters and so on.
 
       return {
          DependencyManager: _DependencyManager,

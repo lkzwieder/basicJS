@@ -1,4 +1,4 @@
-var userCtrl = $b.def([
+var UserCtrl = $b.def([
     '!/modules/user/userTemplate.html'
 ], function(userTmp, params) {
     $b.Controller({

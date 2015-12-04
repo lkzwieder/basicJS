@@ -21,6 +21,9 @@ var UserCtrl = $b.def([
       events: {
          'click #function': function() {
             console.log('click on #function');
+         },
+         'mouseover .user': function() {
+            console.log('hover on .user');
          }
       }
    });

@@ -5,7 +5,6 @@ var $b;
       var _store = {};
       var _defaultRoutes = {controller: function() {console.log('no default controller')}};
       var _routes = _defaultRoutes;
-      var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
          var queue = {};
@@ -414,15 +413,6 @@ var $b;
             flushRoutes: _flushRoutes
          };
       })();
-      var _vdomDiff = function(old, current) { // TODO
-
-      };
-      var _replace = function(id, vdom) { // TODO
-
-      };
-      var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
-
-      };
       var _select = function(query, el) {
          el = el || d;
          return el.querySelectorAll(query);
@@ -658,10 +648,6 @@ var $b;
             return buf.join('');
          };
 
-
-         /**
-          * attrExtensions hook start
-          */
          var _attrExtensions = [];
          var _applyAttrs = function(json, params) {
             if(json.attr) {
@@ -706,9 +692,6 @@ var $b;
             }
             return json;
          };
-         /**
-          * attrExtensions hook end
-          */
 
          return {
             html2json: _html2json,

@@ -662,30 +662,53 @@ var $b;
           */
 
          var _attrExtensions = [{
-            bc_repeat: function(json) {
-               console.log("bc-repeat", json);
+            bc_repeat: function(json, params) {
+               var _goDeeper = function(json, value) {
+                  if(json.child) {
+                     var len = json.child.length;
+                     for(var i = 0; i < len; i++) {
+                        json.child[i].text = _replace(value, json.child[i].text);
+                     }
+                  }
+                  return json;
+               };
+               var _replace = function(value, text) {
+                  return text;
+               };
+
+
+               var parts = json.attr['bc-repeat'].split(' ', 3); // TODO index is needed?
+               var quantity = params[parts[2]].length;
+               for(var i = quantity - 1; i--;) {
+                  json.child = json.child.concat(json.child);
+               }
+               params[parts[2]].forEach(function(k) {
+                  console.log(k);
+               });
+               console.log(parts);
+               console.log(json);
                return json;
             }
          }];
-         var _applyAttrs = function(json) {
+         var _applyAttrs = function(json, params) {
             if(json.attr) {
                for(var attr in json.attr) {
                   _attrExtensions.forEach(function(extension) {
                      var dashedAttr = attr.replace('-', '_');
                      if(_utils.inObject(dashedAttr, extension)) {
-                        json = extension[dashedAttr](json);
+                        json = extension[dashedAttr](json, params);
                      }
                   });
                }
             }
             return json;
          };
-         var _process = function(json) {
-            json = _applyAttrs(json);
+         var _process = function(json, params) {
+            json = _applyAttrs(json, params);
             if(json.child) {
                var len = json.child.length;
                for(var i = 0; i < len; i++) {
-                  json.child[i] = _process(json.child[i]);
+                  json.child[i] = _process(json.child[i], params);
                }
             }
             //console.log(json);

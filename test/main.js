@@ -9,7 +9,8 @@ $b.setConfig({
 });
 
 $b.req([
-   '/app.js'
+   '/app.js',
+   '/extensions/bc_repeat.js'
 ], function(App) {
    App();
 });

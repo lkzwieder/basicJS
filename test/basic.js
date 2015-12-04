@@ -657,10 +657,11 @@ var $b;
             if (!empty[tag]) buf.push('</' + tag + '>');
             return buf.join('');
          };
+
+
          /**
           * attrExtensions hook start
           */
-
          var _attrExtensions = [];
          var _applyAttrs = function(json, params) {
             if(json.attr) {
@@ -686,12 +687,17 @@ var $b;
             toReplace.forEach(function(v) {
                if(v.indexOf(keyName) === 0) {
                   str = str.replace('{{'+ v +'}}', eval(v.replace(keyName + '.', 'value.')));
+               } else if(!keyName) {
+                  str = str.replace('{{'+ v +'}}', value[v]);
                }
             });
             return str;
          };
          var _process = function(json, params) {
             json = _applyAttrs(json, params);
+            if(json.text) {
+               json.text = _replace(params, json.text);
+            }
             if(json.child) {
                var len = json.child.length;
                for(var i = 0; i < len; i++) {

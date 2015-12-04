@@ -5,7 +5,6 @@ var $b;
       var _store = {};
       var _defaultRoutes = {controller: function() {console.log('no default controller')}};
       var _routes = _defaultRoutes;
-      var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
          var queue = {};
@@ -414,15 +413,6 @@ var $b;
             flushRoutes: _flushRoutes
          };
       })();
-      var _vdomDiff = function(old, current) { // TODO
-
-      };
-      var _replace = function(id, vdom) { // TODO
-
-      };
-      var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
-
-      };
       var _select = function(query, el) {
          el = el || d;
          return el.querySelectorAll(query);
@@ -658,12 +648,59 @@ var $b;
             return buf.join('');
          };
 
+         var _attrExtensions = [];
+         var _applyAttrs = function(json, params) {
+            if(json.attr) {
+               for(var attr in json.attr) {
+                  _attrExtensions.forEach(function(extension) {
+                     var dashedAttr = attr.replace('-', '_');
+                     if(_utils.inObject(dashedAttr, extension)) {
+                        json = extension[dashedAttr](json, params);
+                     }
+                  });
+               }
+            }
+            return json;
+         };
+         var _replace = function(value, str, keyName) {
+            var matches = str.match(/{{\s*[\w\.]+\s*}}/g);
+            var toReplace = [];
+            if(matches) {
+               toReplace = matches.map(function(x) {
+                  return x.match(/[\w\.]+/)[0];
+               });
+            }
+            toReplace.forEach(function(v) {
+               if(v.indexOf(keyName) === 0) {
+                  str = str.replace('{{'+ v +'}}', eval(v.replace(keyName + '.', 'value.')));
+               } else if(!keyName) {
+                  str = str.replace('{{'+ v +'}}', value[v]);
+               }
+            });
+            return str;
+         };
+         var _process = function(json, params) {
+            json = _applyAttrs(json, params);
+            if(json.text) {
+               json.text = _replace(params, json.text);
+            }
+            if(json.child) {
+               var len = json.child.length;
+               for(var i = 0; i < len; i++) {
+                  json.child[i] = _process(json.child[i], params);
+               }
+            }
+            return json;
+         };
+
          return {
             html2json: _html2json,
-            json2html: _json2html
+            json2html: _json2html,
+            process: _process,
+            replace: _replace,
+            attrExtensions: _attrExtensions
          };
       }();
-      // TODO extend HTML with for, filters and so on.
 
       return {
          DependencyManager: _DependencyManager,

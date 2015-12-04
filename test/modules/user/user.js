@@ -4,7 +4,14 @@ var UserCtrl = $b.def([
    $b.Controller({
       el: $b.select('body')[0],
       initialize: function() {
-         this.vdom = $b.vdom.html2json(userTmp);
+         this.vdom = $b.vdom.process($b.vdom.html2json(userTmp),
+            {value: [
+               {name: 'Lucas', lastname: 'Tettamanti'},
+               {name: 'Amira', lastname: 'Natour'}
+            ],
+            title: "Hola mundo",
+            other: "Test"}
+         );
          this.html = $b.vdom.json2html(this.vdom);
          return this;
       },
@@ -12,8 +19,11 @@ var UserCtrl = $b.def([
          this.el.innerHTML = this.html;
       },
       events: {
-         'mouseover #function': function() {
+         'click #function': function() {
             console.log('click on #function');
+         },
+         'mouseover .user': function() {
+            console.log('hover on .user');
          }
       }
    });

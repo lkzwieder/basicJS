@@ -1,8 +1,10 @@
-<div>
-    <h1 id="function">This is an example</h1>
+<div class="some">
+    <h1 id="function">{{title}}</h1>
     <ul bc-repeat="k in value">
-        <li class="user"><a>User 1</a></li>
-        <li><a>User 2</a></li>
-        <li><a>User 3</a></li>
+        <li class="user">
+            <a>Resultado para {{k.name}}</a>
+            <span> Nombre completo: {{k.name}} {{k.lastname}}</span>
+        </li>
+        <h2>{{other}}</h2>
     </ul>
 </div>

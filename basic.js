@@ -5,7 +5,6 @@ var $b;
       var _store = {};
       var _defaultRoutes = {controller: function() {console.log('no default controller')}};
       var _routes = _defaultRoutes;
-      var _vdom = {};
 
       var _DependencyManager = function(arr, config) {
          var queue = {};
@@ -58,15 +57,20 @@ var $b;
             _wasDependency(name);
          };
 
-         var originalPos = 0;
-         arr.forEach(function(name) {
+         var _toAddCode = function(name) {
             var url = name;
             var deps = [];
             if(config[name]) {
                url = config[name].url || url;
                deps = config[name].deps || deps;
             }
-            _addCode(url, name, deps, originalPos);
+            return {url: url, deps: deps};
+         };
+
+         var originalPos = 0;
+         arr.forEach(function(name) {
+            var toAdd = _toAddCode(name);
+            _addCode(toAdd.url, name, toAdd.deps, originalPos);
             originalPos += 1;
          });
 
@@ -74,15 +78,23 @@ var $b;
             executed.forEach(function(name) {
                _wasDependency(name);
             });
+            if(!_utils.isEmptyObject(queue)) {
+               for(var script in queue) {
+                  config[script].deps.forEach(function(name) {
+                     var toAdd = _toAddCode(name);
+                     _addCode(toAdd.url, name, toAdd.deps);
+                  });
+               }
+            }
          }
 
          return data;
       };
       var _Deferred = function(options) {
          options = options || {
-                verbose: false,
-                processOnFail: false
-             };
+               verbose: false,
+               processOnFail: false
+            };
          var _successStoreArr = [];
          var _failStoreArr = [];
          var _thenCount = null;
@@ -159,7 +171,8 @@ var $b;
             }
          };
       };
-      var _req = function(deps, cb) {
+      var _req = function(deps, cb, params) {
+         var alreadyLoaded = [];
          var _createScript = function() {
             var script = d.createElement('script');
             script.type = 'text/javascript';
@@ -191,10 +204,10 @@ var $b;
             var deferred = new _Deferred();
             var script = _createScript();
             script.src = url;
-            var prevWindow = _utils.shallowClone(w);
+            var prevWindow = _utils.shallowClone(w); // TODO cuando se ejecuta load, windowDiff encuentra todas las diferencias pero el nombre que llega como parametro es uno solo
             script.addEventListener('load', function(e) {
                var node = e.currentTarget;
-               var names = _windowDiffStore(prevWindow, w, name);
+               var names = _windowDiffStore(prevWindow, w, name, node, url);
                if(!_utils.isEmptyArray(names)) {
                   names.forEach(function(n) {
                      delete w[n];
@@ -216,13 +229,16 @@ var $b;
             return name.indexOf('!') === 0 ? _storeText(name, url) : _storeScript(name, url);
          };
 
-         var _windowDiffStore = function(old, current, name) {
+         var _windowDiffStore = function(old, current, name, node, url) {
             var res = [];
             current = _utils.shallowClone(current);
             for(var i in current) {
-               if(!old[i] && !_store[name]) {
-                  _store[name] = current[i];
-                  res.push(i);
+               if(!old[i]) {
+                  if(node.src.indexOf(url) != -1 && alreadyLoaded.indexOf(i) == -1) {
+                     _store[name] = current[i];
+                     alreadyLoaded.push(i);
+                     res.push(i);
+                  }
                }
             }
             return res;
@@ -237,23 +253,24 @@ var $b;
                }
             });
             new _Deferred().when.apply(null, dynamics)
-                .then(function() {
-                   var toSend = [];
-                   deps.forEach(function(name) {
-                      toSend.push(_store[name]);
-                   });
-                   if(cb) cb.apply(null, toSend);
-                })
-                .fail(function(e) {
-                   console.log(e);
-                });
+               .then(function() {
+                  var toSend = [];
+                  deps.forEach(function(name) {
+                     toSend.push(_store[name]);
+                  });
+                  toSend.push(params);
+                  if(cb) cb.apply(null, toSend);
+               })
+               .fail(function(e) {
+                  console.log(e);
+               });
          } else {
-            cb();
+            cb(params);
          }
       };
       var _def = function(deps, cb) {
          return function() {
-            _req(deps, cb);
+            _req(deps, cb, arguments);
          };
       };
       var _setConfig = function(config) {
@@ -306,18 +323,23 @@ var $b;
             });
             return merged;
          },
-         shallowClone: function(obj) { // bettar than deepClone if your concern is performance
+         uniqueArray: function(arr) {
+            var res = [];
+            arr.forEach(function(i) {
+               if(res.indexOf(i) == -1) res.push(i);
+            });
+            return res;
+         },
+         shallowClone: function(obj) {
             var clone = {};
             for(var i in obj) {
-               clone[i] = obj[i];
+               if(i.indexOf('on') !== 0 &&
+                  ["defaultstatus", "defaultStatus", "pageYOffset", "scrollY", "pageXOffset", "scrollX", "frameElement",
+                     "opener", "length", "closed", "status", "name", "TEMPORARY"].indexOf(i) == -1) {
+                  clone[i] = obj[i];
+               }
             }
             return clone;
-         },
-         deepClone: function(obj) {
-            return JSON.parse(JSON.stringify(obj));
-         },
-         anotherClone: function(obj) {
-            return new Object(obj);
          }
       };
       var _Router = (function() {
@@ -357,14 +379,16 @@ var $b;
                         newParams.push(matches[i]);
                      }
                      if(!_utils.isEmptyArray(matches)) {
-                        _routes[route].controller.apply(this, newParams);
+                        _routes[route].controller.apply(null, newParams);
                         foundRoute = true;
                         break;
                      }
                   }
                }
             }
-            if(!foundRoute) _routes.default.controller();
+            if(!foundRoute) {
+               _routes.default.controller();
+            }
          };
 
          setInterval(function() {
@@ -388,27 +412,36 @@ var $b;
             flushRoutes: _flushRoutes
          };
       })();
-      var _vdomDiff = function(old, current) { // TODO
-
+      var _select = function(query, el) {
+         el = el || d;
+         return el.querySelectorAll(query);
       };
-      var _replace = function(id, vdom) { // TODO
-
+      var _Controller = function(opt) {
+         opt.render = opt.render || function() {};
+         opt.events = opt.events || {};
+         opt.initialize().render();
+         if(!_utils.isEmptyObject(opt.events)) {
+            for(var event in opt.events) {
+               var evt = event.split(" ", 2);
+               var el = _select(evt[1]);
+               var len = el.length;
+               for(var i = len; i--;) {
+                  el[i].addEventListener(evt[0], opt.events[event]);
+               }
+            }
+         }
       };
-      var _getById = function(id) { // TODO VDOM notation (levels, siblings)... 5c3c10 (fifth sibling, children, third sibling, children tenth sibling)
-
-      };
-      var _controller = function() {};
       var _parser = function() {
          var _makeMap = function(str) {
             var obj = {},
-                items = str.split(","),
-                itemsLen = items.length;
+               items = str.split(","),
+               itemsLen = items.length;
             for(var i = 0; i < itemsLen; i++) obj[items[i]] = true;
             return obj;
          };
          var startTag = /^<([-A-Za-z0-9_]+)((?:\s+[a-zA-Z_:][-a-zA-Z0-9_:.]*(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/,
-             endTag = /^<\/([-A-Za-z0-9_]+)[^>]*>/,
-             attr = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
+            endTag = /^<\/([-A-Za-z0-9_]+)[^>]*>/,
+            attr = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
          var empty = _makeMap("area,base,basefont,br,col,frame,hr,img,input,link,meta,param,embed,command,keygen,source,track,wbr");
          var block = _makeMap("a,address,article,applet,aside,audio,blockquote,button,canvas,center,dd,del,dir,div,dl,dt,fieldset,figcaption,figure,footer,form,frameset,h1,h2,h3,h4,h5,h6,header,hgroup,hr,iframe,ins,isindex,li,map,menu,noframes,noscript,object,ol,output,p,pre,section,script,table,tbody,td,tfoot,th,thead,tr,ul,video");
          var inline = _makeMap("abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,script,select,small,span,strike,strong,sub,sup,textarea,tt,u,var");
@@ -476,9 +509,9 @@ var $b;
                   var attrs = [];
                   rest.replace(attr, function (match, name) { // No need for uglify here, wacala!
                      var value = arguments[2] ? arguments[2] :
-                         arguments[3] ? arguments[3] :
-                             arguments[4] ? arguments[4] :
-                                 fillAttrs[name] ? name : "";
+                        arguments[3] ? arguments[3] :
+                           arguments[4] ? arguments[4] :
+                              fillAttrs[name] ? name : "";
                      attrs.push({
                         name: name,
                         value: value,
@@ -614,22 +647,73 @@ var $b;
             return buf.join('');
          };
 
+         var _attrExtensions = [];
+         var _applyAttrs = function(json, params) {
+            if(json.attr) {
+               for(var attr in json.attr) {
+                  _attrExtensions.forEach(function(extension) {
+                     var dashedAttr = attr.replace('-', '_');
+                     if(_utils.inObject(dashedAttr, extension)) {
+                        json = extension[dashedAttr](json, params);
+                     }
+                  });
+               }
+            }
+            return json;
+         };
+         var _replace = function(value, str, keyName) {
+            var matches = str.match(/{{\s*[\w\.]+\s*}}/g);
+            var toReplace = [];
+            if(matches) {
+               toReplace = matches.map(function(x) {
+                  return x.match(/[\w\.]+/)[0];
+               });
+            }
+            toReplace.forEach(function(v) {
+               if(v.indexOf(keyName) === 0) {
+                  str = str.replace('{{'+ v +'}}', eval(v.replace(keyName + '.', 'value.')));
+               } else if(!keyName) {
+                  str = str.replace('{{'+ v +'}}', value[v]);
+               }
+            });
+            return str;
+         };
+         var _process = function(json, params) {
+            json = _applyAttrs(json, params);
+            if(json.text) {
+               json.text = _replace(params, json.text);
+            }
+            if(json.child) {
+               var len = json.child.length;
+               for(var i = 0; i < len; i++) {
+                  json.child[i] = _process(json.child[i], params);
+               }
+            }
+            return json;
+         };
+
          return {
             html2json: _html2json,
-            json2html: _json2html
+            json2html: _json2html,
+            process: _process,
+            replace: _replace,
+            attrExtensions: _attrExtensions
          };
       }();
-      // TODO extend HTML with for, filters and so on.
 
       return {
          DependencyManager: _DependencyManager,
          Deferred: _Deferred,
+         Controller: _Controller,
          req: _req,
          def: _def,
          setConfig: _setConfig,
          vdom: _parser,
          Router: _Router,
-         utils: _utils
+         utils: _utils,
+         select: _select,
+         controllers: {},
+         store: _store
       };
    };
 

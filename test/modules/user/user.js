@@ -9,7 +9,8 @@ var UserCtrl = $b.def([
                {name: 'Lucas', lastname: 'Tettamanti'},
                {name: 'Amira', lastname: 'Natour'}
             ],
-            title: "Hola mundo"}
+            title: "Hola mundo",
+            other: "Test"}
          );
          this.html = $b.vdom.json2html(this.vdom);
          return this;

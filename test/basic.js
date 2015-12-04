@@ -661,35 +661,7 @@ var $b;
           * attrExtensions hook start
           */
 
-         var _attrExtensions = [{
-            bc_repeat: function(json, params) {
-               var _goDeeper = function(json, value) {
-                  if(json.child) {
-                     var len = json.child.length;
-                     for(var i = 0; i < len; i++) {
-                        json.child[i].text = _replace(value, json.child[i].text);
-                     }
-                  }
-                  return json;
-               };
-               var _replace = function(value, text) {
-                  return text;
-               };
-
-
-               var parts = json.attr['bc-repeat'].split(' ', 3); // TODO index is needed?
-               var quantity = params[parts[2]].length;
-               for(var i = quantity - 1; i--;) {
-                  json.child = json.child.concat(json.child);
-               }
-               params[parts[2]].forEach(function(k) {
-                  console.log(k);
-               });
-               console.log(parts);
-               console.log(json);
-               return json;
-            }
-         }];
+         var _attrExtensions = [];
          var _applyAttrs = function(json, params) {
             if(json.attr) {
                for(var attr in json.attr) {
@@ -703,6 +675,21 @@ var $b;
             }
             return json;
          };
+         var _replace = function(value, str, keyName) {
+            var matches = str.match(/{{\s*[\w\.]+\s*}}/g);
+            var toReplace = [];
+            if(matches) {
+               toReplace = matches.map(function(x) {
+                  return x.match(/[\w\.]+/)[0];
+               });
+            }
+            toReplace.forEach(function(v) {
+               if(v.indexOf(keyName) === 0) {
+                  str = str.replace('{{'+ v +'}}', eval(v.replace(keyName + '.', 'value.')));
+               }
+            });
+            return str;
+         };
          var _process = function(json, params) {
             json = _applyAttrs(json, params);
             if(json.child) {
@@ -711,7 +698,6 @@ var $b;
                   json.child[i] = _process(json.child[i], params);
                }
             }
-            //console.log(json);
             return json;
          };
          /**
@@ -722,6 +708,7 @@ var $b;
             html2json: _html2json,
             json2html: _json2html,
             process: _process,
+            replace: _replace,
             attrExtensions: _attrExtensions
          };
       }();

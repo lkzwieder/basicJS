@@ -663,15 +663,19 @@ var $b;
 
          var _attrExtensions = [{
             bc_repeat: function(json) {
+               console.log("bc-repeat", json);
                return json;
             }
          }];
          var _applyAttrs = function(json) {
             if(json.attr) {
                for(var attr in json.attr) {
-                  if(_utils.inObject(attr.replace('-', '_'), _attrExtensions)) {
-                     json = _attrExtensions[attr](json);
-                  }
+                  _attrExtensions.forEach(function(extension) {
+                     var dashedAttr = attr.replace('-', '_');
+                     if(_utils.inObject(dashedAttr, extension)) {
+                        json = extension[dashedAttr](json);
+                     }
+                  });
                }
             }
             return json;
@@ -684,7 +688,7 @@ var $b;
                   json.child[i] = _process(json.child[i]);
                }
             }
-            console.log(json);
+            //console.log(json);
             return json;
          };
          /**

@@ -1,6 +1,6 @@
 {
   "name": "basic-js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "front end framework build simple to work fast",
   "main": "basic.js",
   "directories": {

@@ -1,6 +1,6 @@
 {
   "name": "basic-js",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "front end framework build simple to work fast",
   "main": "basic.js",
   "directories": {
@@ -17,6 +17,9 @@
     "basic",
     "framework",
     "di",
+    "backbone",
+    "angular",
+    "requirejs",
     "dependency injection",
     "requirejs",
     "isolated",

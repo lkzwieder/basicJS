@@ -15,16 +15,14 @@ var $b;
          var executed = [];
          var data = [];
          config = config || {};
-         var _addCode = function(url, name, deps, pos) {
-            if(!_utils.isEmptyArray(deps)) {
-               deps.forEach(function(v) {
-                  if(executed.indexOf(v) > -1) {
-                     deps.slice(deps.indexOf(v), 1);
-                  }
-               });
-            }
-            !_utils.isEmptyArray(deps) ? _enqueue(url, name, deps, pos) : _execute(url, name, pos);
-         };
+          var _addCode = function(url, name, deps, pos) {
+             if(!_utils.isEmptyArray(deps)) {
+                deps = deps.filter(function(v) {
+                   return executed.indexOf(v) === -1;
+                });
+             }
+             !_utils.isEmptyArray(deps) ? _enqueue(url, name, deps, pos) : _execute(url, name, pos);
+          };
          var _enqueue = function(url, name, deps, pos) {
             if(!queue[name]) {
                queue[name] = {};
@@ -86,39 +84,40 @@ var $b;
          }
          return data;
       };
-      var _Deferred = function(options) {
-         options = options || {
-               verbose: false,
-               processOnFail: false
-            };
-         var _successStoreArr = [];
-         var _failStoreArr = [];
-         var _thenCount = null;
-         var _doneCb;
-         var _failCb;
-         var _executeWhen = function(isSuccess, args, pos) {
-            _thenCount--;
-            if(isSuccess) {
-               _successStoreArr[pos] = args[0];
-            } else {
-               _failStoreArr[pos] = args[0];
-               if(!options.processOnFail) {
-                  _thenCount = false;
-                  _successStoreArr = [];
-               }
-               if(options.verbose) console.log("The argument in the position number: " + pos + " has failed");
-            }
-            if(!_thenCount) {
-               if(_failStoreArr.length) {
-                  _failStoreArr = Array.prototype.slice.call(_failStoreArr);
-                  _failCb.apply(null, _failStoreArr);
-               }
-               if(_successStoreArr.length) {
-                  _successStoreArr = Array.prototype.slice.call(_successStoreArr);
-                  _doneCb.apply(null, _successStoreArr);
-               }
-            }
-         };
+          var _Deferred = function(options) {
+             options = options || {
+                   verbose: false,
+                   processOnFail: false
+                };
+             var _successStoreArr = [];
+             var _failStoreArr = [];
+             var _thenCount = null;
+             var _doneCb;
+             var _failCb;
+             var _executeWhen = function(isSuccess, args, pos) {
+                if(_thenCount === false) return;
+                _thenCount--;
+                if(isSuccess) {
+                   _successStoreArr[pos] = args[0];
+                } else {
+                   _failStoreArr[pos] = args[0];
+                   if(!options.processOnFail) {
+                      _thenCount = false;
+                      _successStoreArr = [];
+                   }
+                   if(options.verbose) console.log("The argument in the position number: " + pos + " has failed");
+                }
+                if(_thenCount <= 0) {
+                   if(_failStoreArr.length) {
+                      _failStoreArr = Array.prototype.slice.call(_failStoreArr);
+                      _failCb && _failCb.apply(null, _failStoreArr);
+                   }
+                   if(_successStoreArr.length) {
+                      _successStoreArr = Array.prototype.slice.call(_successStoreArr);
+                      _doneCb && _doneCb.apply(null, _successStoreArr);
+                   }
+                }
+             };
          var _execute = function(callback, args) {
             args = Array.prototype.slice.call(args);
             callback.apply(null, args);
@@ -169,11 +168,11 @@ var $b;
             script.async = true;
             return script;
          };
-         var _storeText = function(name, url) {
-            var deferred = new _Deferred();
-            var request = new XMLHttpRequest();
-            if(url.indexOf('!') === 0) url = url.substring(1, url.length);
-            request.onreadystatechange = function() {
+          var _storeText = function(name, url) {
+             var deferred = new _Deferred();
+             var request = new XMLHttpRequest();
+             if(url.charAt(0) === '!') url = url.substring(1, url.length);
+             request.onreadystatechange = function() {
                if(request.readyState == 4 && request.status == 200) {
                   if(!_store[name]) {
                      _store[name] = request.responseText;
@@ -187,25 +186,25 @@ var $b;
             request.send(null);
             return deferred.promise();
          };
-         var _storeScript = function(name, url) {
-            var deferred = new _Deferred();
-            if(_loaded.indexOf(name) == -1) {
-               _loaded.push(name);
-               var script = _createScript();
-               script.src = url;
-               var prevWindow = _utils.shallowClone(w); // TODO cuando se ejecuta load, windowDiff encuentra todas las
-                                                        // diferencias pero el nombre que llega como parametro es uno solo
-               script.addEventListener('load', function(e) {
-                  var node = e.currentTarget;
-                  var names = _windowDiffStore(prevWindow, w, name, node, url);
-                  if(!_utils.isEmptyArray(names)) {
-                     names.forEach(function(n) {
-                        if(_config.allowedGlobals.indexOf(n) == -1) delete w[n];
-                     });
-                  }
-                  deferred.resolve();
-                  node.parentNode.removeChild(node);
-               });
+          var _storeScript = function(name, url) {
+             var deferred = new _Deferred();
+             if(_loaded.indexOf(name) === -1) {
+                _loaded.push(name);
+                var script = _createScript();
+                script.src = url;
+                var prevWindow = _utils.shallowClone(w);
+                script.addEventListener('load', function(e) {
+                   var node = e.currentTarget;
+                   if(!node.parentNode) return;
+                   var names = _windowDiffStore(prevWindow, w, name, node, url);
+                   if(!_utils.isEmptyArray(names)) {
+                      names.forEach(function(n) {
+                         if((_config.allowedGlobals || []).indexOf(n) === -1) delete w[n];
+                      });
+                   }
+                   deferred.resolve();
+                   node.parentNode.removeChild(node);
+                });
                script.addEventListener('error', function(e) {
                   var node = e.currentTarget;
                   node.parentNode.removeChild(node);
@@ -222,22 +221,22 @@ var $b;
             }
             return deferred.promise();
          };
-         var _storeDeps = function(name, url) {
-            return name.indexOf('!') === 0 ? _storeText(name, url) : _storeScript(name, url);
-         };
-         var _windowDiffStore = function(old, current, name, node, url) {
-            var res = [];
-            current = _utils.shallowClone(current);
-            for(var i in current) {
-               if(!old[i]) {
-                  if(node.src.indexOf(url) != -1 && !_utils.inObject(i, _store)) {
-                     _store[name] = current[i];
-                     res.push(i);
-                  }
-               }
-            }
-            return res;
-         };
+          var _storeDeps = function(name, url) {
+             return name.charAt(0) === '!' ? _storeText(name, url) : _storeScript(name, url);
+          };
+          var _windowDiffStore = function(old, current, name, node, url) {
+             var res = [];
+             current = _utils.shallowClone(current);
+             for(var i in current) {
+                if(current.hasOwnProperty(i) && !(i in old)) {
+                   if(node.src.indexOf(url) !== -1 && !_utils.inObject(i, _store)) {
+                      _store[name] = current[i];
+                      res.push(i);
+                   }
+                }
+             }
+             return res;
+          };
          var dynamics = [];
          if(!_utils.isEmptyArray(deps)) {
             var orderedDeps = new _DependencyManager(deps, _config['paths']);
@@ -297,12 +296,14 @@ var $b;
          },
          inObject: function(prop, obj) {
             var res = false;
-            for(var key in obj) {
-               if(obj.hasOwnProperty(key)) {
-                  if(key == prop) res = true;
-                  break;
-               }
-            }
+             for(var key in obj) {
+                if(obj.hasOwnProperty(key)) {
+                   if(key === prop) {
+                      res = true;
+                      break;
+                   }
+                }
+             }
             return res;
          },
          mergeObjects: function() {
@@ -408,14 +409,27 @@ var $b;
                _routes.default.controller();
             }
          };
-         setInterval(function() {
-            var currentUrl = w.location.pathname;
-            if(_hash != currentUrl) {
-               var evt = new Event('urlChange');
-               _hash = w.location.pathname;
-               d.dispatchEvent(evt);
-            }
-         }, 50);
+          if(w.history && w.history.pushState) {
+             var _originalPushState = history.pushState;
+             history.pushState = function() {
+                var result = _originalPushState.apply(this, arguments);
+                var currentUrl = w.location.pathname;
+                if(_hash !== currentUrl) {
+                   _hash = currentUrl;
+                   var evt = new Event('urlChange');
+                   d.dispatchEvent(evt);
+                }
+                return result;
+             };
+             w.addEventListener('popstate', function() {
+                var currentUrl = w.location.pathname;
+                if(_hash !== currentUrl) {
+                   _hash = currentUrl;
+                   var evt = new Event('urlChange');
+                   d.dispatchEvent(evt);
+                }
+             });
+          }
          d.addEventListener('urlChange', function() {
             _run();
          });
@@ -428,62 +442,91 @@ var $b;
             flushRoutes: _flushRoutes
          };
       })();
-      var _selectAll = function(query, el) {
-         el = el || d;
-         return el.querySelectorAll(query);
-      };
-      var _select = function(query, el) {
-         el = el || d;
-         return el.querySelector(query);
-      };
-      var _getFormElements = function(form) {
-         var res = {};
-         ["input", "select", "textarea"].forEach(function(i) {
-            var data = _selectAll(i, form);
-            var len = data.length;
-            for(var j = len; j--;) {
-               if(i == "select") data[j].value = data[j].options[data[j].selectedIndex].value;
-               res[data[j].name] = data[j].value;
-            }
-         });
-         return res;
-      };
-      var _reloadEvents = function(events) {
-         if(!_utils.isEmptyObject(events)) {
-            for(var event in events) {
-               var evt = event.split(" ", 2);
-               var el = _selectAll(evt[1]);
-               var len = el.length;
-               for(var i = len; i--;) {
-                  el[i].addEventListener(evt[0], events[event]);
-               }
-            }
-         }
-      };
-      var _Controller = function(opt) {
-         opt.render = opt.render || false;
-         opt.events = opt.events || {};
-         opt.reloadEvents = function() {
-            _reloadEvents(opt.events);
-         };
-         if(opt.wait) {
-            var interval = setInterval(function() {
-               opt.el = _select(opt.el);
-               if(opt.el) {
-                  _initializeController(opt);
-                  clearInterval(interval);
-               }
-            }, 50);
-         } else {
-            opt.el = _select(opt.el);
-            _initializeController(opt);
-         }
-      };
-      var _initializeController = function(opt) {
-         opt.initialize();
-         if(opt.render) opt.render();
-         _reloadEvents(opt.events);
-      };
+       var _selectAll = function(query, el) {
+          el = el || d;
+          try {
+             return el.querySelectorAll(query);
+          } catch(e) {
+             console.warn('Invalid selector:', query);
+             return [];
+          }
+       };
+       var _select = function(query, el) {
+          el = el || d;
+          try {
+             return el.querySelector(query);
+          } catch(e) {
+             console.warn('Invalid selector:', query);
+             return null;
+          }
+       };
+          var _getFormElements = function(form) {
+             var res = {};
+             var elements = ['input', 'select', 'textarea'];
+             for(var e = 0; e < elements.length; e++) {
+                var data = _selectAll(elements[e], form);
+                var len = data.length;
+                for(var j = len; j--;) {
+                   if(elements[e] === "select") {
+                      var option = data[j].options[data[j].selectedIndex];
+                      data[j].value = option && option.value || '';
+                   }
+                   if(data[j].name) {
+                      res[data[j].name] = data[j].value;
+                   }
+                }
+             }
+             return res;
+          };
+          var _reloadEvents = function(events) {
+             if(!_utils.isEmptyObject(events)) {
+                for(var event in events) {
+                   if(events.hasOwnProperty(event)) {
+                      var evt = event.split(" ", 2);
+                      var el = _selectAll(evt[1]);
+                      var len = el.length;
+                      for(var i = len; i--;) {
+                         el[i].addEventListener(evt[0], events[event]);
+                      }
+                   }
+                }
+             }
+          };
+       var _Controller = function(opt) {
+          opt.render = opt.render || false;
+          opt.events = opt.events || {};
+          opt.reloadEvents = function() {
+             _reloadEvents(opt.events);
+          };
+          if(opt.wait) {
+             var interval = setInterval(function() {
+                opt.el = _select(opt.el);
+                if(opt.el) {
+                   _initializeController(opt);
+                   clearInterval(interval);
+                   interval = null;
+                }
+             }, 50);
+             opt.cancelWait = function() {
+                if(interval) {
+                   clearInterval(interval);
+                   interval = null;
+                }
+             };
+          } else {
+             opt.el = _select(opt.el);
+             _initializeController(opt);
+          }
+       };
+       var _initializeController = function(opt) {
+          if(typeof opt.initialize === 'function') {
+             opt.initialize();
+          }
+          if(opt.render && typeof opt.render === 'function') {
+             opt.render();
+          }
+          _reloadEvents(opt.events);
+       };
       var _parser = function() {
          var _makeMap = function(str) {
             var obj = {},
@@ -709,29 +752,32 @@ var $b;
             }
             return json;
          };
-         var _replace = function(value, str, keyName) {
-            var matches = str.match(/{{\s*[\w\.]+\s*}}/g);
-            var toReplace = [];
-            if(matches) {
-               toReplace = matches.map(function(x) {
-                  return x.match(/[\w\.]+/)[0];
-               });
-            }
-            toReplace.forEach(function(v) {
-               str = str.replace('{{' + v + '}}', (v.indexOf(keyName) === 0) ? eval(v.replace(keyName + '.', 'value.')) : _findValue(v, value));
-            });
-            return str;
-         };
-         var _findValue = function(strKeys, value) {
-            var res = "";
-            var keys = strKeys.split('.');
-            var i = 0;
-            keys.forEach(function(k) {
-               res = i ? res[k] : value[k];
-               i++;
-            });
-            return res;
-         };
+          var _replace = function(value, str, keyName) {
+             var matches = str.match(/{{\s*[\w\.]+\s*}}/g);
+             var toReplace = [];
+             if(matches) {
+                toReplace = matches.map(function(x) {
+                   return x.match(/[\w\.]+/)[0];
+                });
+             }
+             toReplace.forEach(function(v) {
+                var replacedValue = (v.indexOf(keyName) === 0) ? _findValue(v.replace(keyName + '.', ''), value) : _findValue(v, value);
+                str = str.replace('{{' + v + '}}', replacedValue);
+             });
+             return str;
+          };
+          var _findValue = function(strKeys, value) {
+             var res = value;
+             var keys = strKeys.split('.');
+             for(var i = 0; i < keys.length; i++) {
+                if(res && typeof res === 'object' && keys[i] in res) {
+                   res = res[keys[i]];
+                } else {
+                   return undefined;
+                }
+             }
+             return res;
+          };
          var _process = function(json, params) {
             json = _applyAttrs(json, params);
             if(json) {

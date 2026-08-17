@@ -13,18 +13,23 @@ $b.vdom.attrExtensions.push({
          return json;
       };
 
-      var parts = json.attr['bc-repeat'].split(' ', 3); // TODO index is needed?
-      var child = JSON.parse(JSON.stringify(json.child));
-      json.child = [];
-      var _addChild = function(json, child) {
-         json.child = json.child.concat(child);
-         return json;
-      };
-      var paramLen = params[parts[2]].length;
-      for(var i = 0; i < paramLen; i++) {
-         json = _addChild(json, JSON.parse(JSON.stringify(child)));
-         json = _goDeeper(json, params[parts[2]][i], parts[0]);
-      }
+       var parts = json.attr['bc-repeat'].split(' ', 3);
+       var child = JSON.parse(JSON.stringify(json.child));
+       json.child = [];
+       var _addChild = function(json, child) {
+          json.child = json.child.concat(child);
+          return json;
+       };
+       var sourceArray = params[parts[2]];
+       if(!_utils.isArray(sourceArray)) {
+          console.warn('bc-repeat: expected array for "' + parts[2] + '", got', sourceArray);
+          return json;
+       }
+       var paramLen = sourceArray.length;
+       for(var i = 0; i < paramLen; i++) {
+          json = _addChild(json, JSON.parse(JSON.stringify(child)));
+          json = _goDeeper(json, sourceArray[i], parts[0]);
+       }
       return json;
    }
 });
